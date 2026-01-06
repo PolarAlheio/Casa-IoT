@@ -52,3 +52,54 @@ button.relay.on {
   background: #4caf50;
   color: white;
 }
+
+/* ===== MOBILE ===== */
+@media (max-width: 768px) {
+
+  body {
+    padding: 12px;
+  }
+
+  h1 {
+    font-size: 1.8em;
+  }
+
+  /* LOGIN */
+  #login {
+    max-width: 320px;
+    margin: auto;
+  }
+
+  #login input {
+    font-size: 1.2em;
+    padding: 14px;
+  }
+
+  #login button {
+    font-size: 1.2em;
+    padding: 14px;
+  }
+
+  /* CARDS */
+  #devices {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .device-card {
+    padding: 18px;
+  }
+
+  .device-card h3 {
+    font-size: 1.2em;
+  }
+
+  .mac {
+    font-size: 0.8em;
+  }
+
+  .relay {
+    font-size: 1em;
+    padding: 12px;
+  }
+}
