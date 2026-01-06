@@ -68,6 +68,13 @@ function connectMQTT() {
       const topic = `ESP_TX/casa/${mac}`;
       mqttClient.subscribe(topic);
       console.log("Sub:", topic);
+      
+      // GET inicial
+      mqttClient.publish(
+        `ESP_RX/casa/${mac}`,
+        "CMD:GET"
+      );
+      setAllRelaysPending(mac);
     });
   });
 
@@ -82,17 +89,38 @@ function onMQTTMessage(topic, payload) {
   const msg = payload.toString();
   console.log("RX:", topic, msg);
 
-  // STATUS:RL:1:ON
   const parts = msg.split(":");
   if (parts[0] !== "STATUS") return;
 
+  const mac = topic.split("/").pop();
+
+  // STATUS:RL:1:ON
   if (parts[1] === "RL") {
     const relay = parts[2];
     const state = parts[3];
-    const mac = topic.split("/").pop();
-
     onRelayStatus(mac, relay, state);
   }
+
+  // STATUS:GET:ON:ON:OFF:OFF
+  if (parts[1] === "GET") {
+    for (let i = 2; i < parts.length; i++) {
+      const relay = String(i - 1);
+      const state = parts[i];
+      onRelayStatus(mac, relay, state);
+    }
+  }
+}
+
+function setAllRelaysPending(mac) {
+  Object.keys(relayState[mac]).forEach(relay => {
+    relayState[mac][relay].state = "PENDING";
+
+    const btn = document.querySelector(
+      `.relay[data-mac="${mac}"][data-relay="${relay}"]`
+    );
+
+    if (btn) setRelayVisual(btn, "PENDING");
+  });
 }
 
 function renderRelays(mac, count) {
@@ -157,7 +185,7 @@ function onRelayClick(mac, relay, button) {
     setRelayVisual(button, "ERROR");
     info.state = "ERROR";
     console.error(`Timeout relé ${relay} (${mac})`);
-  }, 2000);
+  }, 10000);
 }
 
 function onRelayStatus(mac, relay, state) {
