@@ -7,6 +7,18 @@ const COLORS = {
 
 const relayState = {};
 
+const MQTT_CONFIG = {
+  url: "wss://www.mqtt-dashboard.com:8884/mqtt",
+  options: {
+    keepalive: 30,
+    clean: true,
+    reconnectPeriod: 2000,
+    connectTimeout: 4000
+  }
+};
+
+let mqttClient = null;
+
 async function loadJSON(file) {
   const res = await fetch(file);
 
@@ -43,6 +55,44 @@ async function loadDevices() {
   }
 
   initRelays(); 
+}
+
+function connectMQTT() {
+  mqttClient = mqtt.connect(MQTT_CONFIG.url, MQTT_CONFIG.options);
+
+  mqttClient.on("connect", () => {
+    console.log("MQTT conectado");
+
+    // subscribe em todos os TX
+    Object.keys(relayState).forEach(mac => {
+      const topic = `ESP_TX/casa/${mac}`;
+      mqttClient.subscribe(topic);
+      console.log("Sub:", topic);
+    });
+  });
+
+  mqttClient.on("message", onMQTTMessage);
+
+  mqttClient.on("error", err =>
+    console.error("MQTT error", err)
+  );
+}
+
+function onMQTTMessage(topic, payload) {
+  const msg = payload.toString();
+  console.log("RX:", topic, msg);
+
+  // STATUS:RL:1:ON
+  const parts = msg.split(":");
+  if (parts[0] !== "STATUS") return;
+
+  if (parts[1] === "RL") {
+    const relay = parts[2];
+    const state = parts[3];
+    const mac = topic.split("/").pop();
+
+    onRelayStatus(mac, relay, state);
+  }
 }
 
 function renderRelays(mac, count) {
@@ -85,6 +135,12 @@ function setRelayVisual(button, state) {
 }
 
 function onRelayClick(mac, relay, button) {
+  if (!mqttClient || !mqttClient.connected) {
+  console.warn("MQTT ainda não conectado");
+  return;
+  }
+
+  if (!relayState[mac]) return;
   const info = relayState[mac][relay];
 
   if (info.state === "PENDING") return;
@@ -94,7 +150,8 @@ function onRelayClick(mac, relay, button) {
   setRelayVisual(button, "PENDING");
   info.state = "PENDING";
 
-  console.log(`CMD:RL:${relay}:${next} → ${mac}`);
+  mqttClient.publish(`ESP_RX/casa/${mac}`,`CMD:RL:${relay}:${next}`);
+
 
   info.timeout = setTimeout(() => {
     setRelayVisual(button, "ERROR");
@@ -119,3 +176,6 @@ function onRelayStatus(mac, relay, state) {
   if (btn) setRelayVisual(btn, state);
 }
 
+window.addEventListener("load", () => {
+  loadDevices().then(connectMQTT);
+});
