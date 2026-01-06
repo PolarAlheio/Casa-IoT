@@ -18,6 +18,7 @@ async function checkPin() {
 function showApp() {
   document.getElementById("login").style.display = "none";
   document.getElementById("app").style.display = "block";
+  loadDevices();
 }
 
 function checkSession() {
