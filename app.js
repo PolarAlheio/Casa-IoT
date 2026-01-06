@@ -7,6 +7,16 @@ const COLORS = {
 
 const relayState = {};
 
+async function loadJSON(file) {
+  const res = await fetch(file);
+
+  if (!res.ok) {
+    throw new Error(`Erro ao carregar ${file}`);
+  }
+
+  return await res.json();
+}
+
 async function loadDevices() {
   const devices = await loadJSON("devices.json");
   const config = await loadJSON("config.json");
