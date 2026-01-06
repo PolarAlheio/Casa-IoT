@@ -5,7 +5,7 @@ const COLORS = {
   ERROR: "#000"
 };
 
-const relay = String(btn.dataset.relay);
+const relayState = {};
 
 async function loadDevices() {
   const devices = await loadJSON("devices.json");
@@ -95,6 +95,7 @@ function onRelayClick(mac, relay, button) {
 
 function onRelayStatus(mac, relay, state) {
   relay = String(relay);
+
   const info = relayState[mac]?.[relay];
   if (!info) return;
 
@@ -107,3 +108,4 @@ function onRelayStatus(mac, relay, state) {
 
   if (btn) setRelayVisual(btn, state);
 }
+
