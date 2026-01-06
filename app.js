@@ -5,12 +5,7 @@ const COLORS = {
   ERROR: "#000"
 };
 
-const relayState = {};
-
-async function loadJSON(file) {
-  const res = await fetch(file);
-  return await res.json();
-}
+const relay = String(btn.dataset.relay);
 
 async function loadDevices() {
   const devices = await loadJSON("devices.json");
@@ -30,22 +25,85 @@ async function loadDevices() {
       <h3>${name}</h3>
       <p class="mac">${mac}</p>
       <div class="relays">
-        ${renderRelays(relays)}
+        ${renderRelays(mac, relays)}
       </div>
     `;
 
     container.appendChild(card);
   }
+
+  initRelays(); 
 }
 
-function renderRelays(count) {
+function renderRelays(mac, count) {
   let html = "";
   for (let i = 1; i <= count; i++) {
     html += `
-      <button class="relay off" data-relay="${i}">
+      <button class="relay"
+        data-mac="${mac}"
+        data-relay="${i}">
         Relé ${i}
       </button>
     `;
   }
   return html;
+}
+
+function initRelays() {
+  document.querySelectorAll(".relay").forEach(btn => {
+    const mac = btn.dataset.mac;
+    const relay = btn.dataset.relay;
+
+    if (!relayState[mac]) relayState[mac] = {};
+
+    relayState[mac][relay] = {
+      state: "OFF",
+      timeout: null
+    };
+
+    setRelayVisual(btn, "OFF");
+
+    btn.addEventListener("click", () =>
+      onRelayClick(mac, relay, btn)
+    );
+  });
+}
+
+function setRelayVisual(button, state) {
+  button.style.background = COLORS[state];
+  button.dataset.state = state;
+}
+
+function onRelayClick(mac, relay, button) {
+  const info = relayState[mac][relay];
+
+  if (info.state === "PENDING") return;
+
+  const next = info.state === "ON" ? "OFF" : "ON";
+
+  setRelayVisual(button, "PENDING");
+  info.state = "PENDING";
+
+  console.log(`CMD:RL:${relay}:${next} → ${mac}`);
+
+  info.timeout = setTimeout(() => {
+    setRelayVisual(button, "ERROR");
+    info.state = "ERROR";
+    console.error(`Timeout relé ${relay} (${mac})`);
+  }, 2000);
+}
+
+function onRelayStatus(mac, relay, state) {
+  relay = String(relay);
+  const info = relayState[mac]?.[relay];
+  if (!info) return;
+
+  clearTimeout(info.timeout);
+  info.state = state;
+
+  const btn = document.querySelector(
+    `.relay[data-mac="${mac}"][data-relay="${relay}"]`
+  );
+
+  if (btn) setRelayVisual(btn, state);
 }
