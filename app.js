@@ -1,3 +1,12 @@
+const COLORS = {
+  OFF: "#555",        // cinza 555
+  ON: "#2ecc71",
+  PENDING: "#f39c12",
+  ERROR: "#000"
+};
+
+const relayState = {};
+
 async function loadJSON(file) {
   const res = await fetch(file);
   return await res.json();
